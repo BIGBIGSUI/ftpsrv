@@ -494,6 +494,36 @@ static int ftp_custom_cmd_TRMT(void* userdata, const char* data, char* msg_buf, 
     return code;
 }
 
+static int ftp_custom_cmd_ACC(void* userdata, const char* data, char* msg_buf, unsigned msg_buf_len) {
+    Result rc;
+    int code = FTP_DEFAULT_ERROR_CODE;
+    AccountUid uid;
+    AccountProfile profile;
+    AccountProfileBase profilebase;
+
+    // Initialize account service
+    if (R_FAILED(rc = accountInitialize(AccountServiceType_Application))) {
+        snprintf(msg_buf, msg_buf_len, "Failed: accountInitialize() 0x%08X", rc);
+        return code;
+    }
+
+    // Get the last opened user
+    if (R_SUCCEEDED(rc = accountGetLastOpenedUser(&uid))) {
+        // Get profile for the user
+        if (R_SUCCEEDED(rc = accountGetProfile(&profile, uid))) {
+            // Get profile base data
+            if (R_SUCCEEDED(rc = accountProfileGet(&profile, NULL, &profilebase))) {
+                code = 200;
+                snprintf(msg_buf, msg_buf_len, "%016lX %016lX %s", uid.uid[0], uid.uid[1], profilebase.nickname);
+            }
+            accountProfileClose(&profile);
+        }
+    }
+
+    accountExit();
+    return code;
+}
+
 const struct FtpSrvCustomCommand CUSTOM_COMMANDS[] = {
     // reboot console
     { "REBT", ftp_custom_cmd_REBT, NULL, 1, 0 },
@@ -509,6 +539,8 @@ const struct FtpSrvCustomCommand CUSTOM_COMMANDS[] = {
     { "TIDS", ftp_custom_cmd_TIDS, NULL, 1, 0 },
     // terminate tid
     { "TRMT", ftp_custom_cmd_TRMT, NULL, 1, 1 },
+    // get current user account
+    { "ACC", ftp_custom_cmd_ACC, NULL, 1, 0 },
 };
 
 const unsigned CUSTOM_COMMANDS_SIZE = sizeof(CUSTOM_COMMANDS) / sizeof(CUSTOM_COMMANDS[0]);
