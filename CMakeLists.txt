@@ -234,7 +234,7 @@ else()
             set(USE_VFS_USBHSFS TRUE)
         endif()
 
-        ftp_set_options(ftpsrv 769 128 1024*64)
+        ftp_set_options(ftpsrv 769 32 1024*64)
         fetch_minini()
 
         set(NX_SRC
@@ -424,7 +424,7 @@ else()
             SUBTITLE2 "TJ"
         )
     elseif(NINTENDO_3DS)
-        ftp_set_options(ftpsrv 769 64 1024*64)
+        ftp_set_options(ftpsrv 769 10 1024*64)
         fetch_minini()
 
         target_compile_definitions(ftpsrv PUBLIC

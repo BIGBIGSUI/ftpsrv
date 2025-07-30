@@ -174,7 +174,8 @@ int main(int argc, char** argv) {
     }
 
     if (!user_len && !pass_len && !g_ftpsrv_config.anon) {
-        return error_loop("User / Pass / Anon not set in config!");
+        // force anon if user and pass isn't set.
+        g_ftpsrv_config.anon = true;
     }
 
     if (!g_ftpsrv_config.port) {
@@ -204,7 +205,7 @@ int main(int argc, char** argv) {
     printf(TEXT_YELLOW "mount_devices: %d" TEXT_NORMAL "\n", mount_devices);
     printf(TEXT_YELLOW "save_writable: %d" TEXT_NORMAL "\n", save_writable);
     printf(TEXT_YELLOW "\nconfig: %s" TEXT_NORMAL "\n", INI_PATH);
-    if (appletGetAppletType() == AppletType_LibraryApplet || appletGetAppletType() == AppletType_SystemApplet) {
+    if (!IsApplication()) {
         printf(TEXT_RED "\napplet_mode: %u" TEXT_NORMAL "\n", 1);
     }
     printf("\n");
@@ -287,7 +288,7 @@ void userAppInit(void) {
 
     // https://github.com/mtheall/ftpd/blob/e27898f0c3101522311f330e82a324861e0e3f7e/source/switch/init.c#L31
     // this allocates 96MiB of memory (4Mib * 2 * 12)
-    const SocketInitConfig socket_config = {
+    const SocketInitConfig socket_config_application = {
         .tcp_tx_buf_size     = TCP_TX_BUF_SIZE,
         .tcp_rx_buf_size     = TCP_RX_BUF_SIZE,
         .tcp_tx_buf_max_size = TCP_TX_BUF_SIZE_MAX,
@@ -298,6 +299,20 @@ void userAppInit(void) {
         .num_bsd_sessions    = 2,
         .bsd_service_type    = BsdServiceType_Auto,
     };
+
+    const SocketInitConfig socket_config_applet = {
+        .tcp_tx_buf_size = 1024 * 32,
+        .tcp_rx_buf_size = 1024 * 64,
+        .tcp_tx_buf_max_size = 1024 * 256,
+        .tcp_rx_buf_max_size = 1024 * 256,
+        .udp_tx_buf_size = UDP_TX_BUF_SIZE,
+        .udp_rx_buf_size = UDP_RX_BUF_SIZE,
+        .sb_efficiency = 4,
+        .num_bsd_sessions = 2,
+        .bsd_service_type = BsdServiceType_Auto,
+    };
+
+    const SocketInitConfig socket_config = IsApplication() ? socket_config_application : socket_config_applet;
 
     const BsdInitConfig bsd_config = {
         .version             = socketSelectVersion(),
