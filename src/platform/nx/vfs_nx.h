@@ -163,12 +163,15 @@ struct VfsNxCustomPath {
     FtpVfs* func;
 };
 
-void vfs_nx_init(const struct VfsNxCustomPath* custom, bool enable_devices, bool save_writable, bool mount_bis);
+void vfs_nx_init(const struct VfsNxCustomPath* custom, bool enable_devices, bool save_writable, bool mount_bis, bool skip_ascii_convert);
 void vfs_nx_exit(void);
 void vfs_nx_add_device(const char* name, enum VFS_TYPE type);
 
 Result get_app_name(u64 app_id, NcmContentId* id, struct AppName* name);
 Result get_app_name2(u64 app_id, NcmContentMetaDatabase* db, NcmContentStorage* cs, NcmContentId* id, struct AppName* name);
+
+// taken from nxdumptool.
+void utilsReplaceIllegalCharacters(char *str, bool ascii_only);
 
 #define ARRAY_SIZE(x) (sizeof(x) / sizeof(x[0]))
 

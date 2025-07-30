@@ -154,6 +154,7 @@ int main(int argc, char** argv) {
     bool mount_bis = ini_getbool("Nx", "mount_bis", 0, INI_PATH);
     bool save_writable = ini_getbool("Nx", "save_writable", 0, INI_PATH);
     g_led_enabled = ini_getbool("Nx", "led", 1, INI_PATH);
+    bool skip_ascii_convert = ini_getbool("Nx", "skip_ascii_convert", 0, INI_PATH);
     g_ftpsrv_config.port = ini_getl("Nx", "app_port", g_ftpsrv_config.port, INI_PATH); // compat
 
     // get Nx-App overrides
@@ -187,7 +188,7 @@ int main(int argc, char** argv) {
         return error_loop("failed to get current ip address");
     }
 
-    vfs_nx_init(NULL, mount_devices, save_writable, mount_bis);
+    vfs_nx_init(NULL, mount_devices, save_writable, mount_bis, skip_ascii_convert);
 
     const struct in_addr addr = {ip};
     printf(TEXT_YELLOW "ip: %s\n", inet_ntoa(addr));
