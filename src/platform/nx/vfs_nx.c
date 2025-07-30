@@ -267,7 +267,6 @@ Result get_app_name(u64 app_id, NcmContentId* id, struct AppName* name) {
         // open ncm cs and db if not already opened.
         // we do this here rather than at startup due to the fact that ncm
         // doesn't seem to be ready to be used immediately.
-        Result rc;
         if (!serviceIsActive(&g_cs[i].s)) {
             if (R_FAILED(rc = ncmOpenContentStorage(&g_cs[i], ids[i]))) {
                 log_file_fwrite("failed: ncmOpenContentStorage() 0x%X\n", rc);
@@ -401,13 +400,13 @@ void vfs_nx_init(const struct VfsNxCustomPath* custom, bool enable_devices, bool
         vfs_root_init(g_device, &g_device_count);
 
         u64 LanguageCode;
-        SetLanguage Language;
+        SetLanguage Language = SetLanguage_ENUS;
         if (R_SUCCEEDED(setGetSystemLanguage(&LanguageCode))) {
-            setMakeLanguage(LanguageCode, &Language);
-        }
-
-        if (Language < 0 || Language >= 15) {
-            Language = SetLanguage_ENUS;
+            if (R_SUCCEEDED(setMakeLanguage(LanguageCode, &Language))) {
+                if (Language < 0 || Language >= 15) {
+                    Language = SetLanguage_ENUS;
+                }
+            }
         }
 
         g_lang_index = g_nacpLanguageTable[Language];

@@ -7,7 +7,7 @@ extern "C" {
 #endif
 
 struct FtpVfs;
-const extern struct FtpVfs g_vfs_none;
+extern const struct FtpVfs g_vfs_none;
 
 #ifdef __cplusplus
 }

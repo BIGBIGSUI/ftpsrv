@@ -41,7 +41,7 @@ void vfs_storage_init(void);
 void vfs_storage_exit(void);
 
 struct FtpVfs;
-const extern struct FtpVfs g_vfs_storage;
+extern const struct FtpVfs g_vfs_storage;
 
 #ifdef __cplusplus
 }

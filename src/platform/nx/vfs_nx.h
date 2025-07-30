@@ -15,6 +15,19 @@ extern "C" {
 #include "vfs/vfs_nx_root.h"
 #include "vfs/vfs_nx_fs.h"
 
+#ifndef USE_VFS_SAVE
+    #define USE_VFS_SAVE 0
+#endif
+#ifndef USE_VFS_STORAGE
+    #define USE_VFS_STORAGE 0
+#endif
+#ifndef USE_VFS_GC
+    #define USE_VFS_GC 0
+#endif
+#ifndef USE_VFS_USBHSFS
+    #define USE_VFS_USBHSFS 0
+#endif
+
 #if USE_VFS_SAVE
 #include "vfs/vfs_nx_save.h"
 #endif

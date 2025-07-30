@@ -49,7 +49,7 @@ struct VfsGcDirEntry {
 };
 
 struct FtpVfs;
-const extern struct FtpVfs g_vfs_gc;
+extern const struct FtpVfs g_vfs_gc;
 
 Result vfs_gc_init(void);
 void vfs_gc_exit(void);

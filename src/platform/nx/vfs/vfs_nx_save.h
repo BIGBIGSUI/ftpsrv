@@ -103,7 +103,7 @@ void vfs_save_init(bool save_writable);
 void vfs_save_exit(void);
 
 struct FtpVfs;
-const extern struct FtpVfs g_vfs_save;
+extern const struct FtpVfs g_vfs_save;
 
 #ifdef __cplusplus
 }

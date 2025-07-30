@@ -383,6 +383,9 @@ static int vfs_gc_stat(const char* path, struct stat* st) {
                 build_native_path(nxpath, path);
                 return vfs_fs_internal_stat(&g_fs, nxpath, st);
             }
+            // todo: unsure if this should fallthrough or not, old versions did.
+            return -1;
+
         case GcDirType_Root:
             st->st_nlink = 1;
             st->st_mode = S_IFDIR | S_IRUSR | S_IRGRP | S_IROTH;
