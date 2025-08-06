@@ -68,6 +68,11 @@ struct mmz_Data {
     bool pending; // pending write completion to change state.
 };
 
+// 添加函数声明
+Result mmz_build_zip(struct mmz_Data* mz, FsFileSystem* save_fs, u64 app_id, AccountUid uid, u8 type);
+int mmz_read(struct mmz_Data* mz, void* buf, size_t size);
+void mzz_build_temp_path(char* out, u64 app_id, AccountUid uid, u8 type);
+
 struct VfsSaveFile {
     struct SavePathData data;
 
@@ -103,7 +108,7 @@ void vfs_save_init(bool save_writable);
 void vfs_save_exit(void);
 
 struct FtpVfs;
-extern const struct FtpVfs g_vfs_save;
+const extern struct FtpVfs g_vfs_save;
 
 #ifdef __cplusplus
 }
