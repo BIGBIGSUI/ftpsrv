@@ -21,6 +21,7 @@ static NcmContentMetaDatabase g_db[NCM_SIZE];
 static struct VfsDeviceEntry g_device[DEVICE_NUM];
 static enum VFS_TYPE g_device_type[DEVICE_NUM];
 static u32 g_device_count;
+static bool g_skip_ascii_convert = false;
 
 static const FtpVfs* g_vfs[] = {
     [VFS_TYPE_NONE] = &g_vfs_none,
@@ -267,7 +268,6 @@ Result get_app_name(u64 app_id, NcmContentId* id, struct AppName* name) {
         // open ncm cs and db if not already opened.
         // we do this here rather than at startup due to the fact that ncm
         // doesn't seem to be ready to be used immediately.
-        Result rc;
         if (!serviceIsActive(&g_cs[i].s)) {
             if (R_FAILED(rc = ncmOpenContentStorage(&g_cs[i], ids[i]))) {
                 log_file_fwrite("failed: ncmOpenContentStorage() 0x%X\n", rc);
@@ -290,6 +290,50 @@ Result get_app_name(u64 app_id, NcmContentId* id, struct AppName* name) {
     return rc;
 }
 
+// taken from nxdumptool.
+void utilsReplaceIllegalCharacters(char *str, bool ascii_only)
+{
+    static const char g_illegalFileSystemChars[] = "\\/:*?\"<>|";
+
+    if (g_skip_ascii_convert) {
+        return;
+    }
+
+    size_t str_size = 0, cur_pos = 0;
+
+    if (!str || !(str_size = strlen(str))) return;
+
+    u8 *ptr1 = (u8*)str, *ptr2 = ptr1;
+    ssize_t units = 0;
+    u32 code = 0;
+    bool repl = false;
+
+    while(cur_pos < str_size)
+    {
+        units = decode_utf8(&code, ptr1);
+        if (units < 0) break;
+
+        if (code < 0x20 || (!ascii_only && code == 0x7F) || (ascii_only && code >= 0x7F) || \
+            (units == 1 && memchr(g_illegalFileSystemChars, (int)code, sizeof(g_illegalFileSystemChars))))
+        {
+            if (!repl)
+            {
+                *ptr2++ = '_';
+                repl = true;
+            }
+        } else {
+            if (ptr2 != ptr1) memmove(ptr2, ptr1, (size_t)units);
+            ptr2 += units;
+            repl = false;
+        }
+
+        ptr1 += units;
+        cur_pos += (size_t)units;
+    }
+
+    *ptr2 = '\0';
+}
+
 struct MountEntry {
     const char* name;
     FsBisPartitionId id;
@@ -302,8 +346,10 @@ static const struct MountEntry BIS_NAMES[] = {
     { "bis_system", FsBisPartitionId_System },
 };
 
-void vfs_nx_init(const struct VfsNxCustomPath* custom, bool enable_devices, bool save_writable, bool mount_bis) {
+void vfs_nx_init(const struct VfsNxCustomPath* custom, bool enable_devices, bool save_writable, bool mount_bis, bool skip_ascii_convert) {
     g_enabled_devices = enable_devices;
+    g_skip_ascii_convert = skip_ascii_convert;
+
     if (g_enabled_devices) {
         vfs_nx_add_device("sdmc", VFS_TYPE_FS);
 
@@ -401,13 +447,13 @@ void vfs_nx_init(const struct VfsNxCustomPath* custom, bool enable_devices, bool
         vfs_root_init(g_device, &g_device_count);
 
         u64 LanguageCode;
-        SetLanguage Language;
+        SetLanguage Language = SetLanguage_ENUS;
         if (R_SUCCEEDED(setGetSystemLanguage(&LanguageCode))) {
-            setMakeLanguage(LanguageCode, &Language);
-        }
-
-        if (Language < 0 || Language >= 15) {
-            Language = SetLanguage_ENUS;
+            if (R_SUCCEEDED(setMakeLanguage(LanguageCode, &Language))) {
+                if (Language < 0 || Language >= 15) {
+                    Language = SetLanguage_ENUS;
+                }
+            }
         }
 
         g_lang_index = g_nacpLanguageTable[Language];

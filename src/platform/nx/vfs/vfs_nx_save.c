@@ -429,59 +429,6 @@ static struct SaveAcc g_acc_profile[12];
 static s32 g_acc_count;
 static bool g_writable;
 
-// list of all characters that are invalid for fat,
-// these are coverted to "_"
-static const char INVALID_CHAR_TABLE[] = {
-    '<',
-    '>',
-    ':',
-    '"',
-    '/',
-    '\\',
-    '|',
-    '?',
-    '*',
-    '.',
-    ',',
-    ';',
-    '+',
-    '=',
-    '&',
-    '%', // probably invalid
-};
-
-static void make_zip_string_valid(char* str) {
-    for (int i = 0; str[i]; i++) {
-        const unsigned char c = str[i];
-        const unsigned char c2 = str[i + 1];
-        if (c < 0x20 || c >= 0x80) {
-            if (c == 195 && c2 == 169) {
-                str[i + 1] = 'e';
-                memcpy(str + i, str + i + 1, strlen(str) - i);
-            } else if (c == 226 && c2 == 128 && (unsigned char)str[i + 2] == 153) {
-                str[i + 2] = '\'';
-                memcpy(str + i, str + i + 2, strlen(str) - i);
-            } else {
-                str[i] = '_';
-            }
-        } else {
-            for (int j = 0; j < ARRAY_SIZE(INVALID_CHAR_TABLE); j++) {
-                if (c == INVALID_CHAR_TABLE[j]) {
-                    // see what the next character is
-                    if (str[i + 1] == '\0') {
-                        str[i] = '\0';
-                    } else if (str[i + 1] != ' ') {
-                        str[i] = '_';
-                    } else {
-                        memcpy(str + i, str + i + 1, strlen(str) - i);
-                    }
-                    break;
-                }
-            }
-        }
-    }
-}
-
 static FsFileSystem* mount_save_fs(const struct SavePathData* d) {
     for (int i = 0; i < ARRAY_SIZE(g_save_cache); i++) {
         struct SaveCacheEntry* entry = &g_save_cache[i];
@@ -613,6 +560,40 @@ static void build_native_path(char out[FS_MAX_PATH], const char* path, const str
     }
 }
 
+static void rescan_users(void) {
+    memset(g_acc_profile, 0, sizeof(g_acc_profile));
+    g_acc_count = 0;
+
+    AccountUid uids[8];
+    s32 count;
+    Result rc;
+    if (R_FAILED(rc = accountListAllUsers(uids, 8, &count))) {
+        log_file_fwrite("failed: accountListAllUsers() 0x%X\n", rc);
+    } else {
+        for (int i = 0; i < count; i++) {
+            AccountProfile profile;
+            if (R_FAILED(rc = accountGetProfile(&profile, uids[i]))) {
+                log_file_fwrite("failed: accountGetProfile() 0x%X\n", rc);
+            } else {
+                AccountProfileBase base;
+                if (R_FAILED(rc = accountProfileGet(&profile, NULL, &base))) {
+                    log_file_fwrite("failed: accountProfileGet() 0x%X\n", rc);
+                } else {
+                    strcpy(g_acc_profile[g_acc_count].name, base.nickname);
+                    g_acc_profile[g_acc_count].uid = uids[i];
+                    g_acc_count++;
+                }
+                accountProfileClose(&profile);
+            }
+        }
+    }
+
+    strcpy(g_acc_profile[g_acc_count++].name, "bcat");
+    strcpy(g_acc_profile[g_acc_count++].name, "cache");
+    strcpy(g_acc_profile[g_acc_count++].name, "device");
+    strcpy(g_acc_profile[g_acc_count++].name, "system");
+}
+
 static int vfs_save_open(void* user, const char* path, enum FtpVfsOpenMode mode) {
     struct VfsSaveFile* f = user;
     f->data = get_type(path);
@@ -727,6 +708,9 @@ static int vfs_save_opendir(void* user, const char* path) {
         default: return -1;
 
         case SaveDirType_Root:
+            rescan_users();
+            break;
+
         case SaveDirType_User1:
             break;
 
@@ -822,7 +806,7 @@ static const char* vfs_save_readdir(void* user, void* user_entry) {
                 snprintf(entry->name, sizeof(entry->name), "[%016lX]%s", entry->info.application_id, ext);
             } else {
                 if (f->data.type == SaveDirType_Zip) {
-                    make_zip_string_valid(name.str);
+                    utilsReplaceIllegalCharacters(name.str, true);
                 }
                 snprintf(entry->name, sizeof(entry->name), "%s [%016lX]%s", name.str, entry->info.application_id, ext);
             }
@@ -1023,35 +1007,7 @@ static int vfs_save_rename(const char* src, const char* dst) {
 
 void vfs_save_init(bool save_writable) {
     g_writable = save_writable;
-
-    AccountUid uids[8];
-    s32 count;
-    Result rc;
-    if (R_FAILED(rc = accountListAllUsers(uids, 8, &count))) {
-        log_file_fwrite("failed: accountListAllUsers() 0x%X\n", rc);
-    } else {
-        for (int i = 0; i < count; i++) {
-            AccountProfile profile;
-            if (R_FAILED(rc = accountGetProfile(&profile, uids[i]))) {
-                log_file_fwrite("failed: accountGetProfile() 0x%X\n", rc);
-            } else {
-                AccountProfileBase base;
-                if (R_FAILED(rc = accountProfileGet(&profile, NULL, &base))) {
-                    log_file_fwrite("failed: accountProfileGet() 0x%X\n", rc);
-                } else {
-                    strcpy(g_acc_profile[g_acc_count].name, base.nickname);
-                    g_acc_profile[g_acc_count].uid = base.uid;
-                    g_acc_count++;
-                }
-                accountProfileClose(&profile);
-            }
-        }
-    }
-
-    strcpy(g_acc_profile[g_acc_count++].name, "bcat");
-    strcpy(g_acc_profile[g_acc_count++].name, "cache");
-    strcpy(g_acc_profile[g_acc_count++].name, "device");
-    strcpy(g_acc_profile[g_acc_count++].name, "system");
+    rescan_users();
 }
 
 void vfs_save_exit(void) {
@@ -1064,6 +1020,9 @@ void vfs_save_exit(void) {
             fsFsClose(&entry->fs);
         }
     }
+
+    memset(g_acc_profile, 0, sizeof(g_acc_profile));
+    g_acc_count = 0;
 }
 
 const FtpVfs g_vfs_save = {

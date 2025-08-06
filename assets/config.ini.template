@@ -49,6 +49,9 @@ mount_bis = 0
 # enables led on the controller to light flash
 led = 0
 
+# set to disable convert non-ascii characters to _
+skip_ascii_convert = 0
+
 # options specific to Nintendo Switch App
 [Nx-App]
 ; anon = 0

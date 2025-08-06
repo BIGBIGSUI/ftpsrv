@@ -27,7 +27,7 @@ struct VfsRootDirEntry {
 };
 
 struct FtpVfs;
-const extern struct FtpVfs g_vfs_root;
+extern const struct FtpVfs g_vfs_root;
 
 void vfs_root_init(const struct VfsDeviceEntry* entries, const u32* count);
 void vfs_root_exit(void);

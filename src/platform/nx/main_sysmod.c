@@ -562,6 +562,7 @@ int main(void) {
     bool mount_bis = ini_getbool("Nx", "mount_bis", 0, INI_PATH);
     bool save_writable = ini_getbool("Nx", "save_writable", 0, INI_PATH);
     g_led_enabled = ini_getbool("Nx", "led", 1, INI_PATH);
+    bool skip_ascii_convert = ini_getbool("Nx", "skip_ascii_convert", 0, INI_PATH);
     g_ftpsrv_config.port = ini_getl("Nx", "sys_port", g_ftpsrv_config.port, INI_PATH); // compat
 
     // get Nx-Sys overrides
@@ -587,7 +588,7 @@ int main(void) {
         return EXIT_FAILURE;
     }
 
-    vfs_nx_init(NULL, mount_devices, save_writable, mount_bis);
+    vfs_nx_init(NULL, mount_devices, save_writable, mount_bis, skip_ascii_convert);
 
     // 创建autoback文件夹
     FsFileSystem* sdmc_fs = fsdev_wrapGetDeviceFileSystem("sdmc");

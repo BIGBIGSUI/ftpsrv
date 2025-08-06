@@ -10,6 +10,10 @@ extern "C" {
 #include <sys/stat.h>
 #include <switch.h>
 
+#ifndef VFS_NX_BUFFER_IO
+    #define VFS_NX_BUFFER_IO 0
+#endif
+
 struct VfsFsFile {
     FsFile fd;
     s64 off;
@@ -54,7 +58,7 @@ int vfs_fs_internal_rmdir(FsFileSystem* fs, const char nxpath[FS_MAX_PATH]);
 int vfs_fs_internal_rename(FsFileSystem* fs, const char nxpath_src[FS_MAX_PATH], const char nxpath_dst[FS_MAX_PATH]);
 
 struct FtpVfs;
-const extern struct FtpVfs g_vfs_fs;
+extern const struct FtpVfs g_vfs_fs;
 
 #ifdef __cplusplus
 }

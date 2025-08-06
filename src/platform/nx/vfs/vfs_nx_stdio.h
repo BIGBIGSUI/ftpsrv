@@ -43,7 +43,7 @@ int vfs_stdio_internal_rmdir(const char* path);
 int vfs_stdio_internal_rename(const char* path_src, const char* path_dst);
 
 struct FtpVfs;
-const extern struct FtpVfs g_vfs_stdio;
+extern const struct FtpVfs g_vfs_stdio;
 
 #ifdef __cplusplus
 }

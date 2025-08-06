@@ -368,7 +368,7 @@ static int ftp_build_list_entry(struct FtpSession* session, const struct Pathnam
         // if the time is greater than 6 months, show year rather than time
         char date[6] = {0};
         const long six_months = 60ll * 60ll * 24ll * (365ll / 2ll);
-        if (labs(difftime(session->last_update_time, st->st_mtime)) > six_months) {
+        if (labs((long)difftime(session->last_update_time, st->st_mtime)) > six_months) {
             snprintf(date, sizeof(date), "%5u", tm.tm_year + 1900);
         } else {
             snprintf(date, sizeof(date), "%02u:%02u", tm.tm_hour, tm.tm_min);

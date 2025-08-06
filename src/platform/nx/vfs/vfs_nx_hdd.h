@@ -26,7 +26,7 @@ struct VfsHddDirEntry {
 };
 
 struct FtpVfs;
-const extern struct FtpVfs g_vfs_hdd;
+extern const struct FtpVfs g_vfs_hdd;
 
 Result vfs_hdd_init(void);
 void vfs_hdd_exit(void);

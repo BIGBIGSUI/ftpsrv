@@ -13,7 +13,7 @@
 #include "log/log.h"
 
 #define SOC_ALIGN       0x1000
-#define SOC_BUFFERSIZE  (1024*1024*64)
+#define SOC_BUFFERSIZE  (1024*1024*1)
 static u32 *SOC_buffer = NULL;
 
 #define TEXT_NORMAL "\033[37;1m"
@@ -126,7 +126,12 @@ static int error_loop(const char* msg) {
 
 int main(void) {
     // faster processing.
-    osSetSpeedupEnable(true);
+    bool n3ds = false;
+    APT_CheckNew3DS(&n3ds);
+
+    if (n3ds) {
+        osSetSpeedupEnable(true);
+    }
 
     gfxInitDefault();
 	consoleInit(GFX_TOP, &topScreen);
@@ -137,7 +142,7 @@ int main(void) {
     g_ftpsrv_config.anon = ini_getbool("Login", "anon", 0, INI_PATH);
     const int user_len = ini_gets("Login", "user", "", g_ftpsrv_config.user, sizeof(g_ftpsrv_config.user), INI_PATH);
     const int pass_len = ini_gets("Login", "pass", "", g_ftpsrv_config.pass, sizeof(g_ftpsrv_config.pass), INI_PATH);
-    g_ftpsrv_config.port = ini_getl("Network", "port", 21, INI_PATH);
+    g_ftpsrv_config.port = ini_getl("Network", "port", 5000, INI_PATH);
     g_ftpsrv_config.timeout = ini_getl("Network", "timeout", 0, INI_PATH);
     g_ftpsrv_config.use_localtime = ini_getbool("Misc", "use_localtime", 0, INI_PATH);
     const bool log_enabled = ini_getbool("Log", "log", 0, INI_PATH);
@@ -150,8 +155,9 @@ int main(void) {
         g_ftpsrv_config.anon = true;
     }
 
-    if (!g_ftpsrv_config.port) {
-        return error_loop("Network: Invalid port");
+    // handle non-priv ports.
+    if (g_ftpsrv_config.port < 1024) {
+        g_ftpsrv_config.port = 5000;
     }
 
     SOC_buffer = (u32*)memalign(SOC_ALIGN, SOC_BUFFERSIZE);
@@ -184,12 +190,16 @@ int main(void) {
         return error_loop("failed svcCreateMutex()");
     }
 
+    // https://www.3dbrew.org/wiki/APT:SetApplicationCpuTimeLimit
     s32 cpu_id = 0;
-	if (R_FAILED(svcGetThreadIdealProcessor(&cpu_id, CUR_THREAD_HANDLE))) {
-        return error_loop("failed svcGetThreadIdealProcessor()");
+    if (R_SUCCEEDED(APT_SetAppCpuTimeLimit(30))) {
+        cpu_id = n3ds ? 2 : 1;
     }
 
-    Thread thread = threadCreate(ftp_thread, NULL, 1024*16, 0x2F, (cpu_id + 1) % 2, false);
+    Thread thread = threadCreate(ftp_thread, NULL, 1024*16, 0x18, cpu_id, false);
+    if (!thread) {
+        return error_loop("failed threadCreate()");
+    }
 
 	while (aptMainLoop()) {
         hidScanInput();
